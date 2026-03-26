@@ -17,10 +17,9 @@ RUN git clone --depth 1 https://github.com/CrowCpp/Crow.git /tmp/crow \
     && rm -rf /tmp/crow
 
 WORKDIR /app
-COPY CMakeLists.txt .
-COPY src/ ./src/
+COPY . .
 
-RUN cmake . -DCMAKE_BUILD_TYPE=Release \
+RUN cmake . -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF \
     && make uber_wfm_backend -j$(nproc)
 
 EXPOSE 8080
