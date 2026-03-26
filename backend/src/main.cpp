@@ -3,6 +3,7 @@
 // and registers REST API controllers.
 
 #include <crow.h>
+#include <nlohmann/json.hpp>
 #include <atomic>
 #include <memory>
 #include <optional>
