@@ -1,43 +1,28 @@
-# ── Stage 1: Build ────────────────────────────────────────────────────────────
-FROM ubuntu:22.04 AS builder
+FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
     cmake \
-    g++ \
-    make \
-    git \
-    libboost-all-dev \
+    build-essential \
+    libasio-dev \
     libssl-dev \
-    wget \
-    zip \
-    unzip \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Crow header-only framework so find_package(Crow) resolves
+# Install Crow (header-only) so find_package(Crow) resolves at /usr/local/lib/cmake/Crow
 RUN git clone --depth 1 https://github.com/CrowCpp/Crow.git /tmp/crow \
     && cmake -S /tmp/crow -B /tmp/crow/build \
     && cmake --install /tmp/crow/build \
     && rm -rf /tmp/crow
 
 WORKDIR /app
-COPY . .
+COPY CMakeLists.txt .
+COPY src/ ./src/
 
-RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
-    && cmake --build build --target uber_wfm_backend -j$(nproc)
-
-# ── Stage 2: Runtime ──────────────────────────────────────────────────────────
-FROM ubuntu:22.04
-
-ENV DEBIAN_FRONTEND=noninteractive
-
-RUN apt-get update && apt-get install -y \
-    libboost-system-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY --from=builder /app/build/uber_wfm_backend /usr/local/bin/uber_wfm_backend
+RUN cmake . -DCMAKE_BUILD_TYPE=Release \
+    && make uber_wfm_backend -j$(nproc)
 
 EXPOSE 8080
 
-CMD ["uber_wfm_backend"]
+CMD ["/app/uber_wfm_backend"]
