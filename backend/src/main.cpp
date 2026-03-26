@@ -359,10 +359,9 @@ int main() {
 
     // ── Start server ─────────────────────────────────────────────────────────
     app.loglevel(crow::LogLevel::Debug);
-    app.bindaddr("127.0.0.1")
-       .port(8080)
-       .multithreaded()
-       .run();
+    const char* port_env = std::getenv("PORT");
+    uint16_t port = port_env ? std::stoi(port_env) : 8080;
+    app.bindaddr("0.0.0.0").port(port).multithreaded().run();
 
     return 0;
 }
