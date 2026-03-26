@@ -5,6 +5,7 @@
 #include <cmath>
 #include <algorithm>
 #include <map>
+#include <memory>
 
 namespace wfm::analytics {
 

@@ -4,6 +4,8 @@
 #include "core/deployment/evm_calculator.h"
 #include <cmath>
 #include <algorithm>
+#include <memory>
+#include <vector>
 
 namespace wfm::deployment {
 

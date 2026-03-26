@@ -4,6 +4,7 @@
 #include "core/analytics/metrics_aggregator.h"
 #include <algorithm>
 #include <cmath>
+#include <memory>
 #include <sstream>
 #include <iomanip>
 
