@@ -3,6 +3,7 @@
 // and registers REST API controllers.
 
 #include <crow.h>
+#include <atomic>
 #include <memory>
 #include <optional>
 #include <string>
@@ -11,6 +12,7 @@
 #include <sstream>
 #include <iomanip>
 #include <array>
+#include <stdexcept>
 
 // ── Core module headers ──────────────────────────────────────────────────────
 #include "core/router/confidence_evaluator.h"
@@ -228,6 +230,11 @@ private:
 
 } // namespace wfm::repository
 
+// ── Global mutable threshold ──────────────────────────────────────────────────
+// Updated atomically by POST /api/v1/router/threshold.
+// Shared between the threshold-update endpoint and the SSE generator.
+static std::atomic<double> g_stp_threshold{0.95};
+
 // ── SSE ticket generator ──────────────────────────────────────────────────────
 static std::string build_sse_body() {
     static const std::array<const char*, 3> TICKET_TYPES = {
@@ -244,7 +251,7 @@ static std::string build_sse_body() {
 
     for (int i = 0; i < 8; ++i) {
         double confidence   = conf_dist(rng);
-        std::string decision = (confidence >= 0.95) ? "stp" : "human_queue";
+        std::string decision = (confidence >= g_stp_threshold.load()) ? "stp" : "human_queue";
         const char* ttype   = TICKET_TYPES[type_dist(rng)];
         int ticket_num      = id_dist(rng);
 
@@ -331,6 +338,43 @@ int main() {
 
     wfm::api::DeploymentController::register_routes(
         app, evm_for_controller, phase_tracker, milestone_manager);
+
+    // ── Threshold update ─────────────────────────────────────────────────────
+    // POST /api/v1/router/threshold  { "threshold": 0.80 }
+    // Updates the global STP threshold used by both the SSE generator and
+    // the /evaluate endpoint so the routing engine immediately reflects the
+    // value the user set in the Simulator tab.
+    CROW_ROUTE(app, "/api/v1/router/threshold")
+        .methods("POST"_method)
+        ([](const crow::request& req) {
+            try {
+                auto body = nlohmann::json::parse(req.body);
+                if (!body.contains("threshold")) {
+                    crow::json::wvalue err;
+                    err["error"]["code"]    = "validation_error";
+                    err["error"]["message"] = "Missing field: threshold";
+                    return crow::response(400, err);
+                }
+                double t = body["threshold"].get<double>();
+                if (t < 0.0 || t > 1.0) {
+                    crow::json::wvalue err;
+                    err["error"]["code"]    = "validation_error";
+                    err["error"]["message"] = "threshold must be in [0.0, 1.0]";
+                    return crow::response(400, err);
+                }
+                g_stp_threshold.store(t);
+                crow::json::wvalue data;
+                data["threshold"] = t;
+                crow::json::wvalue res;
+                res["data"] = std::move(data);
+                return crow::response(200, res);
+            } catch (const std::exception& e) {
+                crow::json::wvalue err;
+                err["error"]["code"]    = "internal_error";
+                err["error"]["message"] = e.what();
+                return crow::response(500, err);
+            }
+        });
 
     // ── SSE: Live ticket queue stream ────────────────────────────────────────
     // Crow is a synchronous framework; we return a complete SSE body.

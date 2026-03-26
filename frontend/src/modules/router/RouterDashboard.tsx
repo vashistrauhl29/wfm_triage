@@ -5,13 +5,25 @@ import { ConfidenceGauge } from './components/ConfidenceGauge'
 import type { Ticket } from '../../types/ticket'
 import type { QueueStatus } from '../../types/router'
 
-const SSE_BASE = import.meta.env.VITE_API_URL || 'https://wfm-backend-645460010450.us-central1.run.app'
-const SSE_URL = `${SSE_BASE}/api/v1/stream/queue`
-const DEFAULT_THRESHOLD = 0.95
+const BACKEND = import.meta.env.VITE_API_URL || 'https://wfm-backend-645460010450.us-central1.run.app'
+const SSE_URL = `${BACKEND}/api/v1/stream/queue`
+
+const readThreshold = () => parseFloat(localStorage.getItem('wfm_threshold') || '0.95')
+
+// Fire-and-forget: tell the backend to use the new threshold so the SSE
+// stream's routing_decision labels stay consistent with the frontend gauge.
+const syncThresholdToBackend = (t: number) => {
+  fetch(`${BACKEND}/api/v1/router/threshold`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ threshold: t }),
+  }).catch(() => { /* backend unreachable — SSE labels may lag, frontend gauge is authoritative */ })
+}
 
 export function RouterDashboard() {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [latestConfidence, setLatestConfidence] = useState(0)
+  const [threshold, setThreshold] = useState(readThreshold)
   const [queueStatus, setQueueStatus] = useState<QueueStatus>({
     stp_queue_size: 0,
     human_queue_size: 0,
@@ -24,15 +36,49 @@ export function RouterDashboard() {
   // render-cycle batch (multiple dispatchMessage calls inside a single act()).
   const countersRef = useRef({ stp: 0, human: 0, total: 0 })
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const thresholdRef = useRef(threshold)
+
+  // Keep ref in sync so handleTicket always sees the latest threshold
+  // without needing to be recreated on every threshold change.
+  useEffect(() => {
+    thresholdRef.current = threshold
+  }, [threshold])
+
+  // Subscribe to localStorage changes made by the Simulator tab.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'wfm_threshold' && e.newValue) {
+        const t = parseFloat(e.newValue)
+        if (!isNaN(t)) {
+          setThreshold(t)
+          syncThresholdToBackend(t)
+          // Reset counters so the STP rate reflects the new threshold
+          countersRef.current = { stp: 0, human: 0, total: 0 }
+          setQueueStatus({ stp_queue_size: 0, human_queue_size: 0, total_processed: 0, stp_rate: 0 })
+        }
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    // Sync current value to backend on mount
+    syncThresholdToBackend(threshold)
+    return () => window.removeEventListener('storage', onStorage)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleTicket = useCallback((ticket: Ticket) => {
-    setTickets((prev) => [...prev, ticket])
-    setLatestConfidence(ticket.confidence_score)
+    // Re-classify using the frontend threshold so the gauge and counters
+    // immediately reflect user changes even before the backend SSE batch regenerates.
+    const decision: Ticket['routing_decision'] =
+      ticket.confidence_score >= thresholdRef.current ? 'stp' : 'human_queue'
+    const classified: Ticket = { ...ticket, routing_decision: decision }
+
+    setTickets((prev) => [...prev, classified])
+    setLatestConfidence(classified.confidence_score)
     setConnectionError(false)
 
     const c = countersRef.current
     c.total += 1
-    if (ticket.routing_decision === 'stp') {
+    if (decision === 'stp') {
       c.stp += 1
     } else {
       c.human += 1
@@ -108,7 +154,7 @@ export function RouterDashboard() {
           <RouteStatus queueStatus={queueStatus} />
           <ConfidenceGauge
             confidenceScore={latestConfidence}
-            threshold={DEFAULT_THRESHOLD}
+            threshold={threshold}
           />
         </div>
       </div>
