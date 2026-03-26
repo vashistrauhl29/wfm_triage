@@ -4,7 +4,7 @@ import { CostBreakdown } from './components/CostBreakdown'
 import { ImpactChart } from './components/ImpactChart'
 import type { CostBreakdownData, ScenarioDataPoint } from '../../types/simulator'
 
-const API_BASE = `${import.meta.env.VITE_API_URL ?? ''}/api/v1/simulator`
+const API_BASE = `${import.meta.env.VITE_API_URL || 'https://wfm-backend-645460010450.us-central1.run.app'}/api/v1/simulator`
 
 const EMPTY_COST: CostBreakdownData = {
   api_cost: 0,

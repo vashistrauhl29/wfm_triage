@@ -4,7 +4,7 @@ import { EVMMetrics } from './components/EVMMetrics'
 import { MilestoneTracker } from './components/MilestoneTracker'
 import type { DeploymentPhase, EVMSnapshot, Milestone } from '../../types/deployment'
 
-const API_BASE = `${import.meta.env.VITE_API_URL ?? ''}/api/v1/deployment`
+const API_BASE = `${import.meta.env.VITE_API_URL || 'https://wfm-backend-645460010450.us-central1.run.app'}/api/v1/deployment`
 
 // ── Fallback data — rendered whenever the backend is unavailable ─────────────
 

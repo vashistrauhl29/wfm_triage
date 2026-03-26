@@ -4,7 +4,7 @@ import { SOPDisplay } from './components/SOPDisplay'
 import { ActionButtons } from './components/ActionButtons'
 import type { TicketWithContext } from '../../types/ticket'
 
-const API_BASE = `${import.meta.env.VITE_API_URL ?? ''}/api/v1/copilot`
+const API_BASE = `${import.meta.env.VITE_API_URL || 'https://wfm-backend-645460010450.us-central1.run.app'}/api/v1/copilot`
 
 // ── Local demo queue ──────────────────────────────────────────────────────────
 // These are displayed whenever the backend is unavailable (404, network error,

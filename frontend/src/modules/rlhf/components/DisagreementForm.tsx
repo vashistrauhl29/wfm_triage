@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react'
 import type { FeedbackEvent, RLHFCapturePayload } from '../../../types/rlhf'
 
-const API_BASE = `${import.meta.env.VITE_API_URL ?? ''}/api/v1/rlhf`
+const API_BASE = `${import.meta.env.VITE_API_URL || 'https://wfm-backend-645460010450.us-central1.run.app'}/api/v1/rlhf`
 
 const CATEGORY_LABELS: Record<FeedbackEvent['disagreement_category'], string> = {
   policy_change: 'Policy Change',
