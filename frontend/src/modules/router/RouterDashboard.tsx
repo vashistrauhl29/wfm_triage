@@ -5,8 +5,8 @@ import { ConfidenceGauge } from './components/ConfidenceGauge'
 import type { Ticket } from '../../types/ticket'
 import type { QueueStatus } from '../../types/router'
 
-// Use an absolute URL so the Vite proxy handles it correctly in every browser.
-const SSE_URL = `${window.location.origin}/api/v1/stream/queue`
+const SSE_BASE = import.meta.env.VITE_API_URL || 'https://wfm-backend-645460010450.us-central1.run.app'
+const SSE_URL = `${SSE_BASE}/api/v1/stream/queue`
 const DEFAULT_THRESHOLD = 0.95
 
 export function RouterDashboard() {
