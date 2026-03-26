@@ -270,7 +270,7 @@ int main() {
         .headers("Content-Type", "Authorization")
         .methods("GET"_method, "POST"_method, "PUT"_method,
                  "PATCH"_method, "DELETE"_method, "OPTIONS"_method)
-        .origin("http://localhost:5173");
+        .origin("*");
 
     // ── 1. Live HITL Router ──────────────────────────────────────────────────
     // ConfidenceEvaluator is shared separately for the /evaluate endpoint.
