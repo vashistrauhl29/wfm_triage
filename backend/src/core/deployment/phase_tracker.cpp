@@ -3,7 +3,9 @@
 
 #include "core/deployment/phase_tracker.h"
 #include <algorithm>
+#include <memory>
 #include <stdexcept>
+#include <vector>
 
 namespace wfm::deployment {
 

@@ -1,5 +1,7 @@
 #include "core/router/routing_engine.h"
 #include <algorithm>
+#include <memory>
+#include <vector>
 
 namespace wfm::router {
 

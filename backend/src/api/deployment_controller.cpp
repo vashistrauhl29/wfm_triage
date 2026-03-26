@@ -2,6 +2,8 @@
 // Following REST conventions and C++ Core Guidelines
 
 #include "api/deployment_controller.h"
+#include <memory>
+#include <vector>
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;

@@ -2,10 +2,12 @@
 // Following C++ Core Guidelines and TDD principles
 
 #include "core/rlhf/golden_dataset_manager.h"
-#include <stdexcept>
-#include <sstream>
 #include <algorithm>
 #include <iomanip>
+#include <memory>
+#include <sstream>
+#include <stdexcept>
+#include <vector>
 
 namespace wfm::rlhf {
 

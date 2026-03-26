@@ -3,6 +3,8 @@
 
 #include "core/deployment/milestone_manager.h"
 #include <algorithm>
+#include <memory>
+#include <vector>
 
 namespace wfm::deployment {
 

@@ -2,10 +2,12 @@
 // Following C++ Core Guidelines and TDD principles
 
 #include "core/simulator/threshold_optimizer.h"
-#include <stdexcept>
-#include <string>
 #include <algorithm>
 #include <limits>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 namespace wfm::simulator {
 

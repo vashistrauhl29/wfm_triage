@@ -2,10 +2,12 @@
 // Following C++ Core Guidelines and TDD principles
 
 #include "core/copilot/context_generator.h"
-#include <stdexcept>
-#include <sstream>
 #include <algorithm>
 #include <cctype>
+#include <memory>
+#include <sstream>
+#include <stdexcept>
+#include <vector>
 
 namespace wfm::copilot {
 
