@@ -2,28 +2,17 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { TicketQueue } from './components/TicketQueue'
 import { RouteStatus } from './components/RouteStatus'
 import { ConfidenceGauge } from './components/ConfidenceGauge'
+import { useThreshold } from '../../context/ThresholdContext'
 import type { Ticket } from '../../types/ticket'
 import type { QueueStatus } from '../../types/router'
 
 const BACKEND = import.meta.env.VITE_API_URL || 'https://wfm-backend-645460010450.us-central1.run.app'
 const SSE_URL = `${BACKEND}/api/v1/stream/queue`
 
-const readThreshold = () => parseFloat(localStorage.getItem('wfm_threshold') || '0.95')
-
-// Fire-and-forget: tell the backend to use the new threshold so the SSE
-// stream's routing_decision labels stay consistent with the frontend gauge.
-const syncThresholdToBackend = (t: number) => {
-  fetch(`${BACKEND}/api/v1/router/threshold`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ threshold: t }),
-  }).catch(() => { /* backend unreachable — SSE labels may lag, frontend gauge is authoritative */ })
-}
-
 export function RouterDashboard() {
+  const { threshold } = useThreshold()
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [latestConfidence, setLatestConfidence] = useState(0)
-  const [threshold, setThreshold] = useState(readThreshold)
   const [queueStatus, setQueueStatus] = useState<QueueStatus>({
     stp_queue_size: 0,
     human_queue_size: 0,
@@ -42,28 +31,10 @@ export function RouterDashboard() {
   // without needing to be recreated on every threshold change.
   useEffect(() => {
     thresholdRef.current = threshold
+    // Reset counters whenever threshold changes so STP rate recalculates cleanly
+    countersRef.current = { stp: 0, human: 0, total: 0 }
+    setQueueStatus({ stp_queue_size: 0, human_queue_size: 0, total_processed: 0, stp_rate: 0 })
   }, [threshold])
-
-  // Subscribe to localStorage changes made by the Simulator tab.
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === 'wfm_threshold' && e.newValue) {
-        const t = parseFloat(e.newValue)
-        if (!isNaN(t)) {
-          setThreshold(t)
-          syncThresholdToBackend(t)
-          // Reset counters so the STP rate reflects the new threshold
-          countersRef.current = { stp: 0, human: 0, total: 0 }
-          setQueueStatus({ stp_queue_size: 0, human_queue_size: 0, total_processed: 0, stp_rate: 0 })
-        }
-      }
-    }
-    window.addEventListener('storage', onStorage)
-    // Sync current value to backend on mount
-    syncThresholdToBackend(threshold)
-    return () => window.removeEventListener('storage', onStorage)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   const handleTicket = useCallback((ticket: Ticket) => {
     // Re-classify using the frontend threshold so the gauge and counters

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { ThresholdSlider } from './components/ThresholdSlider'
 import { CostBreakdown } from './components/CostBreakdown'
 import { ImpactChart } from './components/ImpactChart'
+import { useThreshold } from '../../context/ThresholdContext'
 import type { CostBreakdownData, ScenarioDataPoint } from '../../types/simulator'
 
 const API_BASE = `${import.meta.env.VITE_API_URL || 'https://wfm-backend-645460010450.us-central1.run.app'}/api/v1/simulator`
@@ -15,7 +16,7 @@ const EMPTY_COST: CostBreakdownData = {
 }
 
 export const SimulatorView: React.FC = () => {
-  const [threshold, setThreshold] = useState(0.95)
+  const { threshold, setThreshold } = useThreshold()
   const [scenarios, setScenarios] = useState<ScenarioDataPoint[]>([])
   const [costData, setCostData] = useState<CostBreakdownData>(EMPTY_COST)
   const [loading, setLoading] = useState(true)
@@ -90,8 +91,6 @@ export const SimulatorView: React.FC = () => {
         const value = parseFloat(attrValue)
         if (!isNaN(value)) {
           setThreshold(value)
-          // Persist on release (native 'change' fires on mouseup, not every tick)
-          localStorage.setItem('wfm_threshold', value.toString())
           fetchCostCalculation(value).catch(console.error)
         }
       }
@@ -104,10 +103,9 @@ export const SimulatorView: React.FC = () => {
   const handleThresholdChange = useCallback(
     (value: number) => {
       setThreshold(value)
-      localStorage.setItem('wfm_threshold', value.toString())
       fetchCostCalculation(value).catch(console.error)
     },
-    [fetchCostCalculation]
+    [setThreshold, fetchCostCalculation]
   )
 
   return (
