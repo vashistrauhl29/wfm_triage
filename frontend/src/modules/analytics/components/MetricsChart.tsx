@@ -15,6 +15,22 @@ interface MetricsChartProps {
   data: MetricsSnapshot[]
 }
 
+const KEY_LABELS: Record<string, string> = {
+  accuracy:      'Prediction Accuracy',
+  stp_rate:      'Automation Rate (STP)',
+  override_rate: 'Human Override Rate',
+}
+
+const formatPct = (v: unknown) =>
+  typeof v === 'number' ? `${(v * 100).toFixed(1)}%` : String(v)
+
+// Tooltip formatter: (value, dataKey) → [formattedValue, label]
+const tooltipFormatter = (value: unknown, key: string): [string, string] =>
+  [formatPct(value), KEY_LABELS[key] ?? key]
+
+// Legend formatter: dataKey → display label
+const legendFormatter = (key: string) => KEY_LABELS[key] ?? key
+
 export const MetricsChart: React.FC<MetricsChartProps> = ({ data }) => {
   return (
     <div data-testid="metrics-chart" className="bg-[#0A0A0A] rounded-lg border border-zinc-800 p-6">
@@ -27,11 +43,19 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ data }) => {
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
             <XAxis dataKey="name" stroke="#71717a" tick={{ fill: '#71717a' }} />
-            <YAxis stroke="#71717a" tick={{ fill: '#71717a' }} />
-            <Tooltip contentStyle={{ background: '#0A0A0A', border: '1px solid #27272a', color: '#fff' }} />
-            <Legend />
-            <Line type="monotone" dataKey="accuracy" stroke="#3b82f6" dot={false} />
-            <Line type="monotone" dataKey="stp_rate" stroke="#10b981" dot={false} />
+            <YAxis
+              stroke="#71717a"
+              tick={{ fill: '#71717a' }}
+              tickFormatter={formatPct}
+              domain={[0, 1]}
+            />
+            <Tooltip
+              contentStyle={{ background: '#0A0A0A', border: '1px solid #27272a', color: '#fff' }}
+              formatter={tooltipFormatter}
+            />
+            <Legend formatter={legendFormatter} />
+            <Line type="monotone" dataKey="accuracy"      stroke="#3b82f6" dot={false} />
+            <Line type="monotone" dataKey="stp_rate"      stroke="#10b981" dot={false} />
             <Line type="monotone" dataKey="override_rate" stroke="#f97316" dot={false} />
           </LineChart>
         </ResponsiveContainer>

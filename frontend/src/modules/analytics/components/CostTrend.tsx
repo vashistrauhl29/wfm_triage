@@ -15,6 +15,24 @@ interface CostTrendProps {
   data: CostDataPoint[]
 }
 
+const KEY_LABELS: Record<string, string> = {
+  total_cost: 'Total Operational Cost',
+  api_cost:   'AI Inference Cost',
+  human_cost: 'Human Review Cost',
+}
+
+const formatUSD = (v: unknown) =>
+  typeof v === 'number'
+    ? '$' + v.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+    : String(v)
+
+// Tooltip formatter: (value, dataKey) → [formattedValue, label]
+const tooltipFormatter = (value: unknown, key: string): [string, string] =>
+  [formatUSD(value), KEY_LABELS[key] ?? key]
+
+// Legend formatter: dataKey → display label
+const legendFormatter = (key: string) => KEY_LABELS[key] ?? key
+
 export const CostTrend: React.FC<CostTrendProps> = ({ data }) => {
   return (
     <div data-testid="cost-trend" className="bg-[#0A0A0A] rounded-lg border border-zinc-800 p-6">
@@ -27,11 +45,18 @@ export const CostTrend: React.FC<CostTrendProps> = ({ data }) => {
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
             <XAxis dataKey="name" stroke="#71717a" tick={{ fill: '#71717a' }} />
-            <YAxis stroke="#71717a" tick={{ fill: '#71717a' }} />
-            <Tooltip contentStyle={{ background: '#0A0A0A', border: '1px solid #27272a', color: '#fff' }} />
-            <Legend />
+            <YAxis
+              stroke="#71717a"
+              tick={{ fill: '#71717a' }}
+              tickFormatter={formatUSD}
+            />
+            <Tooltip
+              contentStyle={{ background: '#0A0A0A', border: '1px solid #27272a', color: '#fff' }}
+              formatter={tooltipFormatter}
+            />
+            <Legend formatter={legendFormatter} />
             <Line type="monotone" dataKey="total_cost" stroke="#6366f1" dot={false} />
-            <Line type="monotone" dataKey="api_cost" stroke="#3b82f6" dot={false} />
+            <Line type="monotone" dataKey="api_cost"   stroke="#3b82f6" dot={false} />
             <Line type="monotone" dataKey="human_cost" stroke="#f97316" dot={false} />
           </LineChart>
         </ResponsiveContainer>
