@@ -35,7 +35,21 @@ export const DisagreementForm: React.FC<DisagreementFormProps> = ({
   const [category, setCategory] = useState<FeedbackEvent['disagreement_category']>('policy_change')
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [submittedForTicket, setSubmittedForTicket] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Lock: true when the form has been successfully submitted for this exact ticket
+  const alreadySubmitted = submitted && submittedForTicket === activeTicketId
+
+  const resetForm = () => {
+    setNotes('')
+    setCategory('policy_change')
+    setActualAction(recommendedAction)
+    setSubmitted(false)
+    setSubmittedForTicket(null)
+    setError(null)
+  }
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -76,16 +90,17 @@ export const DisagreementForm: React.FC<DisagreementFormProps> = ({
         })
         if (!res.ok) throw new Error('Failed to submit feedback')
         const json = await res.json()
-        // Prefer the server-assigned record; fall back to our local object if
-        // the response body is missing or malformed (e.g. wiped in-memory DB).
         onSubmitSuccess(json?.data ?? newFeedback)
       } catch {
-        // Backend unreachable or returned an error — surface the row locally
-        // so the operator sees their submission reflected immediately.
         console.warn('[DisagreementForm] API unavailable, using local feedback object')
         onSubmitSuccess(newFeedback)
       } finally {
         setSubmitting(false)
+        // Lock the form for this ticket so double-clicks and immediate re-submits
+        // are blocked until the operator explicitly resets or a new ticket loads.
+        setSubmitted(true)
+        setSubmittedForTicket(activeTicketId)
+        setNotes('')
       }
     },
     [ticketId, operatorId, recommendedAction, actualAction, category, notes, onSubmitSuccess]
@@ -94,6 +109,21 @@ export const DisagreementForm: React.FC<DisagreementFormProps> = ({
   return (
     <div className="bg-[#0A0A0A] rounded-lg border border-zinc-800 p-6">
       <h2 className="text-xl font-bold text-white mb-4">Capture Disagreement</h2>
+
+      {alreadySubmitted && (
+        <div className="mb-4 flex items-center justify-between bg-emerald-950/40 border border-emerald-700/40 rounded-lg px-4 py-3">
+          <span className="text-sm font-semibold text-emerald-400">
+            ✓ Feedback submitted for {submittedForTicket}
+          </span>
+          <button
+            type="button"
+            onClick={resetForm}
+            className="text-xs text-emerald-300 underline hover:text-emerald-100"
+          >
+            Submit for another ticket
+          </button>
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 text-red-600 text-sm">{error}</div>
@@ -181,10 +211,10 @@ export const DisagreementForm: React.FC<DisagreementFormProps> = ({
           </button>
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || alreadySubmitted}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {submitting ? 'Submitting...' : 'Submit'}
+            {submitting ? 'Submitting...' : alreadySubmitted ? 'Submitted ✓' : 'Submit'}
           </button>
         </div>
       </form>

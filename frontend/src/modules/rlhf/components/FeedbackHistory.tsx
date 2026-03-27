@@ -6,8 +6,12 @@ interface FeedbackHistoryProps {
 }
 
 export const FeedbackHistory: React.FC<FeedbackHistoryProps> = ({ events }) => {
+  // Deduplicate by id before rendering so stale fetches + local optimistic inserts
+  // never produce two rows for the same event.
+  const uniqueEvents = events.filter((e, i, arr) => arr.findIndex((x) => x.id === e.id) === i)
+
   // Force mock data when backend returns empty array (in-memory DB wipes on restart)
-  const displayEvents = events.length === 0 ? [
+  const displayEvents = uniqueEvents.length === 0 ? [
     {
       id: 'mock-001',
       ticket_id: 'demo-001',
@@ -18,7 +22,7 @@ export const FeedbackHistory: React.FC<FeedbackHistoryProps> = ({ events }) => {
       timestamp: Date.now(),
       created_at: new Date().toISOString(),
     }
-  ] : events
+  ] : uniqueEvents
 
   return (
     <div className="bg-[#0A0A0A] rounded-lg border border-zinc-800 p-6">

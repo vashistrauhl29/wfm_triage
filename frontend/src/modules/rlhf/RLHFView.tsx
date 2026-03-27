@@ -42,7 +42,12 @@ export const RLHFView: React.FC<RLHFViewProps> = ({
   }, [])
 
   const handleSubmitSuccess = useCallback((event: FeedbackEvent) => {
-    setEvents((prev) => [event, ...prev])
+    setEvents((prev) => {
+      // Deduplicate by id — prevents duplicate rows if the callback fires twice
+      // (e.g. StrictMode double-invoke or network retry surfacing the same record)
+      if (prev.some((e) => e.id === event.id)) return prev
+      return [event, ...prev]
+    })
   }, [])
 
   const handleCancel = useCallback(() => {
