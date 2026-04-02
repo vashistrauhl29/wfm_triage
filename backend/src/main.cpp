@@ -14,6 +14,8 @@
 #include <iomanip>
 #include <array>
 #include <stdexcept>
+#include <chrono>
+#include <ctime>
 
 // ── Core module headers ──────────────────────────────────────────────────────
 #include "core/router/confidence_evaluator.h"
@@ -250,11 +252,22 @@ static std::string build_sse_body() {
     // Comment heartbeat so the browser knows the connection is alive
     body << ": heartbeat\n\n";
 
+    auto now = std::chrono::system_clock::now();
+
     for (int i = 0; i < 8; ++i) {
         double confidence   = conf_dist(rng);
         std::string decision = (confidence >= g_stp_threshold.load()) ? "stp" : "human_queue";
         const char* ttype   = TICKET_TYPES[type_dist(rng)];
         int ticket_num      = id_dist(rng);
+
+        // Calculate a unique timestamp for each ticket (staggered by 5-15 seconds)
+        auto ticket_time = now - std::chrono::seconds(i * 12 + (rng() % 5));
+        std::time_t tt = std::chrono::system_clock::to_time_t(ticket_time);
+        std::tm gmt;
+        gmtime_r(&tt, &gmt);
+        
+        std::ostringstream ts;
+        ts << std::put_time(&gmt, "%Y-%m-%dT%H:%M:%SZ");
 
         body << "data: {"
              << "\"id\":\"ticket-" << ticket_num << "\","
@@ -262,7 +275,7 @@ static std::string build_sse_body() {
              << "\"confidence_score\":" << std::fixed << std::setprecision(4) << confidence << ","
              << "\"routing_decision\":\"" << decision << "\","
              << "\"raw_data\":\"{}\","
-             << "\"created_at\":\"2026-03-24T15:00:00Z\""
+             << "\"created_at\":\"" << ts.str() << "\""
              << "}\n\n";
     }
     return body.str();
