@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Activity, TrendingUp, Zap } from 'lucide-react'
 import { TicketQueue } from './components/TicketQueue'
 import { RouteStatus } from './components/RouteStatus'
 import { ConfidenceGauge } from './components/ConfidenceGauge'
 import { useThreshold } from '../../context/ThresholdContext'
+import { SkeletonLoader } from '../../components/SkeletonLoader'
 import type { Ticket } from '../../types/ticket'
 import type { QueueStatus } from '../../types/router'
 
@@ -21,6 +23,7 @@ export function RouterDashboard() {
     stp_rate: 0,
   })
   const [connectionError, setConnectionError] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   // Mutable counters that survive across onmessage calls inside the same
   // render-cycle batch (multiple dispatchMessage calls inside a single act()).
@@ -47,6 +50,7 @@ export function RouterDashboard() {
     setTickets((prev) => [...prev, classified])
     setLatestConfidence(classified.confidence_score)
     setConnectionError(false)
+    setIsLoading(false)
 
     const c = countersRef.current
     c.total += 1
@@ -107,39 +111,92 @@ export function RouterDashboard() {
 
   return (
     <div className="min-h-screen bg-black p-6">
-      <motion.h1
+      {/* Header with Stats */}
+      <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="text-2xl font-bold text-white mb-6"
+        className="mb-8"
       >
-        Live HITL Router
-      </motion.h1>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary-600 flex items-center justify-center">
+              <Activity className="w-5 h-5 text-white" strokeWidth={2} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white tracking-tight">
+                Live HITL Router
+              </h1>
+              <p className="text-sm text-zinc-400 mt-0.5">
+                Real-time ticket classification & routing
+              </p>
+            </div>
+          </div>
 
+          {/* Quick Stats */}
+          <div className="flex items-center gap-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-light border border-zinc-800"
+            >
+              <Zap className="w-4 h-4 text-primary-400" />
+              <span className="text-xs text-zinc-400">Processing</span>
+              <span className="text-sm font-bold text-white">
+                {queueStatus.total_processed}
+              </span>
+            </motion.div>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-light border border-zinc-800"
+            >
+              <TrendingUp className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs text-zinc-400">STP Rate</span>
+              <span className="text-sm font-bold text-emerald-400">
+                {(queueStatus.stp_rate * 100).toFixed(1)}%
+              </span>
+            </motion.div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Error Banner */}
       <AnimatePresence>
         {connectionError && (
           <motion.div
             initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-            animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
+            animate={{ opacity: 1, height: 'auto', marginBottom: 24 }}
             exit={{ opacity: 0, height: 0, marginBottom: 0 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="rounded-md border border-red-900/50 bg-red-950/20 p-3 text-sm text-red-400"
+            className="rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-sm text-red-400 flex items-center gap-3"
           >
-            Connection error — attempting to reconnect...
+            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            <span className="font-medium">Connection lost</span>
+            <span className="text-red-400/70">— Attempting to reconnect...</span>
           </motion.div>
         )}
       </AnimatePresence>
 
+      {/* Main Content */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
         className="grid grid-cols-1 lg:grid-cols-3 gap-6"
       >
+        {/* Ticket Queue */}
         <div className="lg:col-span-2">
-          <TicketQueue tickets={tickets} />
+          {isLoading && tickets.length === 0 ? (
+            <SkeletonLoader variant="ticket" count={5} />
+          ) : (
+            <TicketQueue tickets={tickets} />
+          )}
         </div>
 
+        {/* Sidebar */}
         <div className="space-y-6">
           <RouteStatus queueStatus={queueStatus} />
           <ConfidenceGauge

@@ -174,19 +174,28 @@ export default function App() {
         style={{ background: '#0A0A0A' }}
       >
         {/* Brand */}
-        <div className="px-5 py-5 border-b border-zinc-800">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="px-5 py-5 border-b border-zinc-800"
+        >
           <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded flex items-center justify-center bg-white">
-              <Settings className="w-4 h-4 text-black" />
-            </div>
+            <motion.div
+              whileHover={{ rotate: 360 }}
+              transition={{ duration: 0.6 }}
+              className="w-9 h-9 rounded-lg flex items-center justify-center bg-gradient-to-br from-primary-600 to-primary-700 shadow-premium"
+            >
+              <Settings className="w-5 h-5 text-white" strokeWidth={2} />
+            </motion.div>
             <div>
-              <h1 className="text-white font-semibold text-sm tracking-tight leading-tight">
+              <h1 className="text-white font-bold text-base tracking-tight leading-tight">
                 WFM Triage Engine
               </h1>
-              <p className="text-zinc-500 text-xs mt-0.5">Unit Economics Platform</p>
+              <p className="text-zinc-500 text-xs mt-0.5 font-medium">Unit Economics Platform</p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Navigation */}
         <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
@@ -228,22 +237,38 @@ export default function App() {
         </nav>
 
         {/* API health indicator */}
-        <div className="px-5 py-4 border-t border-zinc-800">
-          <div className="flex items-center gap-2">
-            {apiHealthy === null || (apiHealthy && !showErrorIndicator) ? (
-              <Wifi className="w-3 h-3 text-emerald-500 flex-shrink-0 transition-opacity duration-300" />
-            ) : showErrorIndicator ? (
-              <WifiOff className="w-3 h-3 text-red-500 flex-shrink-0 animate-pulse" />
-            ) : (
-              <Loader2 className="w-3 h-3 text-yellow-500 animate-spin flex-shrink-0" />
-            )}
-            <span className="text-xs text-zinc-500 transition-colors duration-300">
-              {showErrorIndicator
-                ? 'Connection lost'
-                : 'Backend connected'}
-            </span>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="px-5 py-4 border-t border-zinc-800 bg-surface"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="relative">
+              {apiHealthy === null || (apiHealthy && !showErrorIndicator) ? (
+                <>
+                  <Wifi className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 transition-opacity duration-300" />
+                  <div className="absolute -inset-1 bg-emerald-500/20 rounded-full blur animate-pulse" />
+                </>
+              ) : showErrorIndicator ? (
+                <>
+                  <WifiOff className="w-3.5 h-3.5 text-red-500 flex-shrink-0 animate-pulse" />
+                  <div className="absolute -inset-1 bg-red-500/20 rounded-full blur animate-pulse" />
+                </>
+              ) : (
+                <Loader2 className="w-3.5 h-3.5 text-yellow-500 animate-spin flex-shrink-0" />
+              )}
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-medium text-zinc-400 transition-colors duration-300">
+                {showErrorIndicator ? 'Disconnected' : 'Connected'}
+              </span>
+              <span className="text-[10px] text-zinc-600">
+                {showErrorIndicator ? 'Retrying...' : 'Live stream active'}
+              </span>
+            </div>
           </div>
-        </div>
+        </motion.div>
       </aside>
 
       {/* ── Main content ─────────────────────────────────────────── */}
