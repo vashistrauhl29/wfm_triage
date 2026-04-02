@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { TicketQueue } from './components/TicketQueue'
 import { RouteStatus } from './components/RouteStatus'
 import { ConfidenceGauge } from './components/ConfidenceGauge'
@@ -105,18 +106,36 @@ export function RouterDashboard() {
   }, [handleTicket])
 
   return (
-    <div className="min-h-screen bg-black p-6 animate-fade-in-up">
-      <h1 className="text-2xl font-bold text-white mb-6">
+    <div className="min-h-screen bg-black p-6">
+      <motion.h1
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="text-2xl font-bold text-white mb-6"
+      >
         Live HITL Router
-      </h1>
+      </motion.h1>
 
-      {connectionError && (
-        <div className="mb-4 rounded-md border border-red-900/50 p-3 text-sm text-red-400">
-          Connection error — attempting to reconnect...
-        </div>
-      )}
+      <AnimatePresence>
+        {connectionError && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
+            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="rounded-md border border-red-900/50 bg-red-950/20 p-3 text-sm text-red-400"
+          >
+            Connection error — attempting to reconnect...
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+      >
         <div className="lg:col-span-2">
           <TicketQueue tickets={tickets} />
         </div>
@@ -128,7 +147,7 @@ export function RouterDashboard() {
             threshold={threshold}
           />
         </div>
-      </div>
+      </motion.div>
     </div>
   )
 }

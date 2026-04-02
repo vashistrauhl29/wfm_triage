@@ -11,6 +11,7 @@ import {
   WifiOff,
   Loader2,
 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 // Lazy-load all module views for code splitting
 const RouterDashboard = React.lazy(() =>
@@ -92,26 +93,57 @@ class ErrorBoundary extends Component<
 
 function LoadingFallback() {
   return (
-    <div className="flex items-center justify-center h-full bg-black">
-      <Loader2 className="w-5 h-5 text-zinc-500 animate-spin" />
-    </div>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="flex items-center justify-center h-full bg-black"
+    >
+      <div className="text-center space-y-3">
+        <Loader2 className="w-6 h-6 text-zinc-500 animate-spin mx-auto" />
+        <p className="text-xs text-zinc-600">Loading module...</p>
+      </div>
+    </motion.div>
   )
 }
 
 export default function App() {
   const [activeView, setActiveView]   = useState<ViewId>('router')
   const [apiHealthy, setApiHealthy]   = useState<boolean | null>(null)
+  const [showErrorIndicator, setShowErrorIndicator] = useState(false)
 
-  // Poll backend health endpoint
+  // Poll backend health endpoint with debounced error display
   useEffect(() => {
+    let errorTimeout: ReturnType<typeof setTimeout> | null = null
+
     const check = () => {
       fetch('/health')
-        .then(r => setApiHealthy(r.ok))
-        .catch(() => setApiHealthy(false))
+        .then(r => {
+          setApiHealthy(r.ok)
+          setShowErrorIndicator(false)
+          if (errorTimeout) {
+            clearTimeout(errorTimeout)
+            errorTimeout = null
+          }
+        })
+        .catch(() => {
+          // Only show error indicator after 2 seconds of failed connection
+          // This prevents flash during page load/refresh
+          if (!errorTimeout) {
+            errorTimeout = setTimeout(() => {
+              setApiHealthy(false)
+              setShowErrorIndicator(true)
+            }, 2000)
+          }
+        })
     }
     check()
     const id = setInterval(check, 30_000)
-    return () => clearInterval(id)
+    return () => {
+      clearInterval(id)
+      if (errorTimeout) clearTimeout(errorTimeout)
+    }
   }, [])
 
   function renderView() {
@@ -161,14 +193,17 @@ export default function App() {
           {NAV_ITEMS.map(item => {
             const isActive = item.id === activeView
             return (
-              <button
+              <motion.button
                 key={item.id}
                 onClick={() => setActiveView(item.id)}
+                whileHover={{ scale: 1.02, x: 2 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
                 className={[
                   'w-full text-left px-3 py-2.5 rounded-md flex items-center gap-3',
                   'transition-all duration-200 ease-in-out group',
                   isActive
-                    ? 'bg-white text-black'
+                    ? 'bg-white text-black shadow-lg'
                     : 'text-zinc-400 hover:bg-zinc-800 hover:text-white',
                 ].join(' ')}
               >
@@ -187,7 +222,7 @@ export default function App() {
                     </div>
                   )}
                 </div>
-              </button>
+              </motion.button>
             )
           })}
         </nav>
@@ -195,19 +230,17 @@ export default function App() {
         {/* API health indicator */}
         <div className="px-5 py-4 border-t border-zinc-800">
           <div className="flex items-center gap-2">
-            {apiHealthy === null ? (
-              <Loader2 className="w-3 h-3 text-yellow-500 animate-spin flex-shrink-0" />
-            ) : apiHealthy ? (
-              <Wifi className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+            {apiHealthy === null || (apiHealthy && !showErrorIndicator) ? (
+              <Wifi className="w-3 h-3 text-emerald-500 flex-shrink-0 transition-opacity duration-300" />
+            ) : showErrorIndicator ? (
+              <WifiOff className="w-3 h-3 text-red-500 flex-shrink-0 animate-pulse" />
             ) : (
-              <WifiOff className="w-3 h-3 text-red-500 flex-shrink-0" />
+              <Loader2 className="w-3 h-3 text-yellow-500 animate-spin flex-shrink-0" />
             )}
-            <span className="text-xs text-zinc-500">
-              {apiHealthy === null
-                ? 'Checking…'
-                : apiHealthy
-                ? 'Backend connected'
-                : 'API offline'}
+            <span className="text-xs text-zinc-500 transition-colors duration-300">
+              {showErrorIndicator
+                ? 'Connection lost'
+                : 'Backend connected'}
             </span>
           </div>
         </div>
@@ -233,7 +266,18 @@ export default function App() {
         <div className="flex-1 overflow-auto">
           <ErrorBoundary>
             <Suspense fallback={<LoadingFallback />}>
-              {renderView()}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeView}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className="h-full"
+                >
+                  {renderView()}
+                </motion.div>
+              </AnimatePresence>
             </Suspense>
           </ErrorBoundary>
         </div>
